@@ -19,6 +19,7 @@ class VideoHandler:
         self.feet_detector = feet_detector
         self.ball_detector = ball_detector
         self.map_2d = map_2d
+        self.puck_holder_record = {}  # dictionary: frame -> puck_holder_id
 
     def run_detectors(self):
         writer = skvideo.io.FFmpegWriter("demo2.mp4")
@@ -42,16 +43,30 @@ class VideoHandler:
                                                                          map_2d_text, time_index)
                     vis = np.vstack((frame, cv2.resize(map_2d_text, (frame.shape[1], frame.shape[1] // 2))))
 
+                    # Record puck holder for this frame.
+                    # (Assumes ball_detector.players holds the list of Player objects.)
+                    puck_id = None
+                    for p in self.ball_detector.players:
+                        if p.has_ball:
+                            puck_id = p.ID
+                            break
+                    self.puck_holder_record[time_index] = puck_id
+
+
                     cv2.imshow("Tracking", vis)
                     # plt_plot(vis)
-                    # writer.writeFrame(cv2.cvtColor(vis, cv2.COLOR_BGR2RGB))
+                    writer.writeFrame(cv2.cvtColor(vis, cv2.COLOR_BGR2RGB))
 
                     k = cv2.waitKey(1) & 0xff
                     if k == 27:
                         break
             time_index += 1
         self.video.release()
-        writer.close()
+        # writer.close()
+        try:
+            writer.close()
+        except AttributeError:
+            pass
         cv2.destroyAllWindows()
 
     def get_homography(self, frame, des1, kp1):

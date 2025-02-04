@@ -1,4 +1,5 @@
 import os
+import csv
 
 from matplotlib import pyplot as plt
 
@@ -37,6 +38,50 @@ def get_frames(video_path, central_frame, mod):
 
     return frames
 
+def save_tracking_data(players, puck_holder_record,
+                       offensive_filename="offensive_players.csv",
+                       defensive_filename="defensive_players.csv",
+                       puck_filename="puck_holder.csv"):
+    offensive_rows = []
+    defensive_rows = []
+    
+    # For each player, iterate over the recorded positions.
+    for player in players:
+        # player.positions is assumed to be a dictionary: frame -> (x, y)
+        for frame in sorted(player.positions.keys()):
+            pos = player.positions[frame]
+            # Skip if position is not available
+            if pos is None:
+                continue
+            row = [frame, player.ID, pos[0], pos[1]]
+            # Here we assume players with team "green" are offensive and "white" are defensive.
+            if player.team.lower() == "green":
+                offensive_rows.append(row)
+            elif player.team.lower() == "white":
+                defensive_rows.append(row)
+            # You can choose to ignore any others (e.g. referee)
+
+    # Write offensive players CSV.
+    with open(offensive_filename, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["frame", "player_id", "x", "y"])
+        writer.writerows(offensive_rows)
+
+    # Write defensive players CSV.
+    with open(defensive_filename, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["frame", "player_id", "x", "y"])
+        writer.writerows(defensive_rows)
+
+    # For puck holder, puck_holder_record is a dictionary: frame -> puck_id
+    puck_rows = []
+    for frame in sorted(puck_holder_record.keys()):
+        puck_id = puck_holder_record[frame]
+        puck_rows.append([frame, puck_id])
+    with open(puck_filename, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["frame", "player_id"])
+        writer.writerows(puck_rows)
 
 #####################################################################
 if __name__ == '__main__':
@@ -49,7 +94,8 @@ if __name__ == '__main__':
         pano = cv2.imread("resources/pano.png")
     else:
         central_frame = 36
-        frames = get_frames('resources/Short4Mosaicing.mp4', central_frame, mod=3)
+        # frames = get_frames('resources/Short4Mosaicing.mp4', central_frame, mod=3)
+        frames = get_frames('resources/test_2.mp4', central_frame, mod=3)
         frames_flipped = [cv2.flip(frames[i], 1) for i in range(central_frame)]
         current_mosaic1 = collage(frames[central_frame:], direction=1)
         current_mosaic2 = collage(frames_flipped, direction=-1)
@@ -85,7 +131,8 @@ if __name__ == '__main__':
     resized = cv2.resize(rectified, (map.shape[1], map.shape[0]))
     map = cv2.resize(map, (rectified.shape[1], rectified.shape[0]))
 
-    video = cv2.VideoCapture("resources/Short4Mosaicing.mp4")
+    # video = cv2.VideoCapture("resources/Short4Mosaicing.mp4")
+    video = cv2.VideoCapture("resources/test_2.mp4")
 
     players = []
     for i in range(1, 6):
@@ -97,3 +144,9 @@ if __name__ == '__main__':
     ball_detect_track = BallDetectTrack(players)
     video_handler = VideoHandler(pano_enhanced, video, ball_detect_track, feet_detector, map)
     video_handler.run_detectors()
+
+    # Now save the tracking data to CSV files.
+    # Assume that the players used in tracking are stored in ball_detector.players.
+    all_players = video_handler.ball_detector.players
+    save_tracking_data(all_players, video_handler.puck_holder_record)
+    print("Tracking data saved to CSV files.")
