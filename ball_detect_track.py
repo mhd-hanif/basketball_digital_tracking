@@ -14,6 +14,7 @@ class BallDetectTrack:
         self.do_detection = True
         self.tracker_type = 'CSRT'
         self.tracker = cv2.TrackerCSRT_create()
+        # self.tracker = cv2.legacy.TrackerCSRT_create()
         self.players = players
 
     @staticmethod

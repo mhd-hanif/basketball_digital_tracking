@@ -23,6 +23,7 @@ class VideoHandler:
     def run_detectors(self):
         writer = skvideo.io.FFmpegWriter("demo2.mp4")
         time_index = 0
+        
         while self.video.isOpened():
             ok, frame = self.video.read()
             if not ok:
@@ -42,7 +43,7 @@ class VideoHandler:
                     vis = np.vstack((frame, cv2.resize(map_2d_text, (frame.shape[1], frame.shape[1] // 2))))
 
                     cv2.imshow("Tracking", vis)
-                    plt_plot(vis)
+                    # plt_plot(vis)
                     # writer.writeFrame(cv2.cvtColor(vis, cv2.COLOR_BGR2RGB))
 
                     k = cv2.waitKey(1) & 0xff
