@@ -21,6 +21,7 @@ COLORS = {  # in HSV FORMAT
 IOU_TH = 0.2
 PAD = 15
 
+COURT_Y_MIN, COURT_Y_MAX = 350, 1200   # Vertical bounds
 
 def hsv2bgr(color_hsv):
     color_bgr = np.array(cv2.cvtColor(np.uint8([[color_hsv]]), cv2.COLOR_HSV2BGR)).ravel()
@@ -139,6 +140,25 @@ class FeetDetector:
                     color = hsv2bgr(COLORS[best_mask[1]][2])
                     warped_kpts.append((homo, color, best_mask[1], bbox_person))  # appending also the color
                     cv2.circle(frame, (keypoint[head, 1], keypoint[foot, 0]), 2, color, 5)
+
+                    # Get foot position (same as the dot)
+                    foot_x, foot_y = keypoint[head, 1], keypoint[foot, 0]
+
+                    # Ensure valid foot position (within frame bounds)
+                    if foot_x <= 0 or foot_y <= 0 or foot_x >= frame.shape[1] or foot_y >= frame.shape[0]:
+                        continue  # Skip if the detected position is out of frame bounds
+
+                    # Ensure the detected foot position is **inside the basketball court**
+                    if not (COURT_Y_MIN <= foot_y <= COURT_Y_MAX):
+                        continue  # Skip players outside the field
+
+                    # Adjust ellipse size manually
+                    ellipse_width = 60  # Width of the ellipse (adjust for better fit)
+                    ellipse_height = 20  # Height should be smaller to mimic perspective
+
+                    # Draw an ellipse **directly around the detected dot**
+                    cv2.ellipse(frame, (foot_x, foot_y), (ellipse_width, ellipse_height), 0, 0, 360, color, 2)
+                    cv2.ellipse(frame, (foot_x, foot_y), (ellipse_width + 2, ellipse_height + 2), 0, 0, 360, (0, 0, 0), 2)  # Black outline
 
         for kpt in warped_kpts:
             (homo, color, color_key, bbox) = kpt
